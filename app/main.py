@@ -3,7 +3,7 @@ import io
 import os
 
 import soundfile as sf
-from runpod_flash import Endpoint, FlashBoot
+from runpod_flash import Endpoint
 
 from app.config import AppConfig
 from app.engine import generate, init_engine
@@ -16,15 +16,7 @@ config = AppConfig()
 
 @Endpoint(
     name="voxcpm2-tts",
-    image="ghcr.io/osvaldgerandro-ux/voxcpm2-runpod:latest",
-    gpu_ids="1x",
-    gpu_mem=config.gpu_mem_util,
-    max_num_workers=1,
-    flashboot=FlashBoot(
-        enabled=True,
-        min_flashboot_seconds=120,
-        max_idle_seconds=300,
-    ),
+    flashboot=True,
 )
 def tts_generate(job):
     try:
