@@ -1,0 +1,16 @@
+endpoint: voxcpm2-tts
+gpu_type: "NVIDIA GeForce RTX 4090"
+image: ghcr.io/osvaldgerandro-ux/voxcpm2-runpod:latest
+env:
+  - key: HF_TOKEN
+    value: ""
+  - key: CONFIG_MODEL_NAME
+    value: "osvald/voxcpm2-tts"
+  - key: CONFIG_MAX_NUM_SEQS
+    value: "16"
+  - key: CONFIG_GPU_MEM
+    value: "0.85"
+flashboot:
+  enabled: true
+  min_flashboot_seconds: 120
+  max_idle_seconds: 300

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoxCPM2 TTS Playground</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-hover: #79c0ff;
+    --danger: #f85149;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    display: flex; justify-content: center; padding: 2rem 1rem;
+  }
+  .container { max-width: 640px; width: 100%; }
+  h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card-title { font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-muted); }
+  label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+  select, textarea, input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+  select { cursor: pointer; }
+  textarea { min-height: 120px; resize: vertical; }
+  .row { display: flex; gap: 1rem; }
+  .row > * { flex: 1; }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .audio-player { margin-top: 1rem; }
+  .audio-player audio { width: 100%; }
+  .error { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; }
+  .status { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; }
+  .spinner { display: none; }
+  .spinner.active {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>VoxCPM2 TTS</h1>
+  <p class="subtitle">Text-to-Speech Playground</p>
+
+  <div class="card">
+    <div class="card-title">Endpoint</div>
+    <div class="row">
+      <div>
+        <label>Endpoint ID</label>
+        <input type="text" id="endpointId" placeholder="runpod endpoint id">
+      </div>
+      <div>
+        <label>API Key</label>
+        <input type="text" id="apiKey" placeholder="runpod api key">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Voice</div>
+    <select id="voiceSelect">
+      <option value="female_en">female_en</option>
+      <option value="male_en">male_en</option>
+      <option value="female_it">female_it</option>
+      <option value="male_it">male_it</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Text</div>
+    <textarea id="textInput" placeholder="Enter text to synthesize..."></textarea>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Instructions (optional)</div>
+    <input type="text" id="instructionsInput" placeholder="e.g. speak slowly and clearly">
+  </div>
+
+  <button id="generateBtn">
+    <span class="spinner" id="spinner"></span>
+    <span id="btnLabel">Generate</span>
+  </button>
+
+  <div id="status" class="status"></div>
+  <div id="error" class="error"></div>
+
+  <div class="card audio-player" id="audioPlayer" style="display:none">
+    <div class="card-title">Result</div>
+    <audio id="audioEl" controls></audio>
+    <p id="duration" style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;"></p>
+  </div>
+</div>
+
+<script>
+const endpointIdInput = document.getElementById('endpointId');
+const apiKeyInput = document.getElementById('apiKey');
+const voiceSelect = document.getElementById('voiceSelect');
+const textInput = document.getElementById('textInput');
+const instructionsInput = document.getElementById('instructionsInput');
+const generateBtn = document.getElementById('generateBtn');
+const spinner = document.getElementById('spinner');
+const btnLabel = document.getElementById('btnLabel');
+const statusEl = document.getElementById('status');
+const errorEl = document.getElementById('error');
+const audioPlayer = document.getElementById('audioPlayer');
+const audioEl = document.getElementById('audioEl');
+const durationEl = document.getElementById('duration');
+
+generateBtn.addEventListener('click', async () => {
+  const endpointId = endpointIdInput.value.trim();
+  const apiKey = apiKeyInput.value.trim();
+  const text = textInput.value.trim();
+  const voice = voiceSelect.value;
+  const instructions = instructionsInput.value.trim() || null;
+
+  if (!text) { showError('Please enter text'); return; }
+  if (!endpointId) { showError('Please enter the RunPod endpoint ID'); return; }
+  if (!apiKey) { showError('Please enter the RunPod API key'); return; }
+
+  setLoading(true);
+  hideError();
+
+  try {
+    const resp = await fetch(`https://api.runpod.ai/v2/${endpointId}/runsync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        input: { text, voice, instructions, response_format: 'base64' },
+      }),
+    });
+
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${errBody}`);
+    }
+
+    const data = await resp.json();
+    const output = data.output;
+
+    if (output.error) throw new Error(output.error);
+
+    const binaryStr = atob(output.audio);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+
+    audioEl.src = url;
+    audioPlayer.style.display = 'block';
+    durationEl.textContent = output.duration_secs
+      ? `Duration: ${output.duration_secs.toFixed(2)}s | Voice: ${output.voice} | Model: ${output.model}`
+      : `Voice: ${output.voice} | Model: ${output.model}`;
+    audioEl.play().catch(() => {});
+    showStatus('Generated successfully');
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    setLoading(false);
+  }
+});
+
+function setLoading(loading) {
+  if (loading) {
+    spinner.classList.add('active');
+    btnLabel.textContent = 'Generating...';
+    generateBtn.disabled = true;
+  } else {
+    spinner.classList.remove('active');
+    btnLabel.textContent = 'Generate';
+    generateBtn.disabled = false;
+  }
+}
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  statusEl.textContent = '';
+}
+function hideError() { errorEl.textContent = ''; }
+function showStatus(msg) {
+  statusEl.textContent = msg;
+  errorEl.textContent = '';
+}
+</script>
+</body>
+</html>

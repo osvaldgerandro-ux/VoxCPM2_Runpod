@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.flash/
+dist/
+*.egg-info/
+.venv/
+venv/
+*.lnk

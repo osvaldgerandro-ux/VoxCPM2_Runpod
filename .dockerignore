@@ -1,0 +1,12 @@
+.git/
+.gitignore
+.flash/
+.flashignore
+client/
+scripts/
+deploy/
+*.md
+__pycache__/
+*.pyc
+.venv/
+venv/
