@@ -6,6 +6,7 @@ Usage:
 
 import asyncio
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -18,14 +19,26 @@ CUSTOM_IMAGE = "ghcr.io/osvaldgerandro-ux/voxcpm2-runpod:latest"
 
 def build():
     """Run flash build to generate artifact and manifest."""
+    old_manifest_mtime = MANIFEST.stat().st_mtime if MANIFEST.exists() else 0
+    old_artifact_mtime = ARTIFACT.stat().st_mtime if ARTIFACT.exists() else 0
+
     result = subprocess.run(
         ["flash", "build"],
         cwd=PROJECT,
         capture_output=True, text=True,
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
+    stderr = (result.stderr or "")[-500:]
+
+    manifest_ok = MANIFEST.exists() and MANIFEST.stat().st_mtime > old_manifest_mtime
+    artifact_ok = ARTIFACT.exists() and ARTIFACT.stat().st_mtime > old_artifact_mtime
+
     if result.returncode != 0:
-        print(result.stderr)
-        raise SystemExit(f"Build failed: {result.stderr[-500:]}")
+        if manifest_ok and artifact_ok:
+            print("Build completed (exit code masked by Windows Unicode bug)")
+        else:
+            print(stderr)
+            raise SystemExit(f"Build failed: {stderr}")
     print("Build OK")
 
 
