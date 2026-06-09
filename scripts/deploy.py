@@ -12,6 +12,14 @@ import sys
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
+
+# Load .env file for RUNPOD_API_KEY if present
+dotenv_path = PROJECT / ".env"
+if dotenv_path.exists():
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path)
+    print(f"Loaded env from {dotenv_path}")
+
 MANIFEST = PROJECT / ".flash" / "flash_manifest.json"
 ARTIFACT = PROJECT / ".flash" / "artifact.tar.gz"
 CUSTOM_IMAGE = "ghcr.io/osvaldgerandro-ux/voxcpm2-runpod:latest"
