@@ -1,4 +1,4 @@
-FROM runpod/base:1.0.4-cuda12.4.1
+FROM runpod/base:1.0.6-cuda1281-ubuntu2404
 
 # System dependencies for audio processing and source builds
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
 
 # vLLM 0.22 + Omni for TTS inference (all dependencies from real PyPI)
-RUN pip install --no-cache-dir --ignore-installed vllm==0.22.0 vllm-omni==0.22.0
+RUN pip install --no-cache-dir vllm==0.22.0 vllm-omni==0.22.0
 
 # Application dependencies
 RUN pip install --no-cache-dir runpod-flash soundfile pydantic huggingface_hub numpy
