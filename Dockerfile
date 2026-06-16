@@ -1,4 +1,4 @@
-FROM runpod/base:1.0.5-dev-fix-image-vulnerabilities-cuda1281-ubuntu2404
+FROM runpod/base:1.0.4-cuda12.4.1
 
 # System dependencies for audio processing and source builds
 RUN apt-get update && apt-get install -y --no-install-recommends \
